@@ -36,8 +36,10 @@ import {
   Loader2,
   LogIn,
   LogOut,
+  Plus,
   Trash2,
   Truck,
+  X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
@@ -49,14 +51,24 @@ import {
   useGetAllRecords,
 } from "./hooks/useQueries";
 
-const PRESET_VEHICLES = [
-  "TN01AB1234",
-  "KA05CD5678",
-  "MH12EF9012",
-  "DL8CAF0001",
-  "GJ01AA0001",
-  "UP16BT0200",
-];
+const PRESET_VEHICLES: string[] = [];
+
+const LS_KEY = "vehicle_custom_list";
+
+function loadCustomVehicles(): string[] {
+  try {
+    const stored = localStorage.getItem(LS_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomVehicles(vehicles: string[]) {
+  localStorage.setItem(LS_KEY, JSON.stringify(vehicles));
+}
 
 function formatDate(d: Date): string {
   const dd = String(d.getDate()).padStart(2, "0");
@@ -135,6 +147,36 @@ export default function App() {
   const [customVehicle, setCustomVehicle] = useState<string>("");
   const [useCustom, setUseCustom] = useState(false);
   const [deletingId, setDeletingId] = useState<bigint | null>(null);
+  const [customVehicles, setCustomVehicles] =
+    useState<string[]>(loadCustomVehicles);
+  const [newVehicleInput, setNewVehicleInput] = useState<string>("");
+
+  const handleAddVehicle = useCallback(() => {
+    const trimmed = newVehicleInput.trim().toUpperCase();
+    if (!trimmed) return;
+    const combined = [...PRESET_VEHICLES, ...customVehicles];
+    if (combined.includes(trimmed)) {
+      toast.error(`${trimmed} is already in the list`);
+      return;
+    }
+    const updated = [...customVehicles, trimmed];
+    setCustomVehicles(updated);
+    saveCustomVehicles(updated);
+    setNewVehicleInput("");
+    setSelectedVehicle(trimmed);
+    toast.success(`${trimmed} added to the list`);
+  }, [newVehicleInput, customVehicles]);
+
+  const handleRemoveCustomVehicle = useCallback(
+    (vehicle: string) => {
+      const updated = customVehicles.filter((v) => v !== vehicle);
+      setCustomVehicles(updated);
+      saveCustomVehicles(updated);
+      if (selectedVehicle === vehicle) setSelectedVehicle("");
+      toast.success(`${vehicle} removed from the list`);
+    },
+    [customVehicles, selectedVehicle],
+  );
 
   const { data: records = [], isLoading } = useGetAllRecords();
   const addRecord = useAddRecord();
@@ -306,25 +348,81 @@ export default function App() {
                     </Label>
                     <div className="space-y-2">
                       {!useCustom ? (
-                        <Select
-                          value={selectedVehicle}
-                          onValueChange={setSelectedVehicle}
-                        >
-                          <SelectTrigger className="font-vehicle bg-muted border-input focus:ring-primary">
-                            <SelectValue placeholder="Select a vehicle…" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {PRESET_VEHICLES.map((v) => (
-                              <SelectItem
-                                key={v}
-                                value={v}
-                                className="font-vehicle"
-                              >
-                                {v}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <>
+                          <Select
+                            value={selectedVehicle}
+                            onValueChange={setSelectedVehicle}
+                          >
+                            <SelectTrigger className="font-vehicle bg-muted border-input focus:ring-primary">
+                              <SelectValue placeholder="Select a vehicle…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {customVehicles.length > 0 && (
+                                <>
+                                  <div className="px-2 py-1">
+                                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
+                                      My Vehicles
+                                    </span>
+                                  </div>
+                                  {customVehicles.map((v) => (
+                                    <div
+                                      key={v}
+                                      className="flex items-center justify-between pr-1"
+                                    >
+                                      <SelectItem
+                                        value={v}
+                                        className="font-vehicle flex-1"
+                                      >
+                                        {v}
+                                      </SelectItem>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRemoveCustomVehicle(v);
+                                        }}
+                                        className="ml-1 p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
+                                        title={`Remove ${v}`}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          {/* Add new vehicle to list */}
+                          <div className="flex gap-1.5">
+                            <Input
+                              value={newVehicleInput}
+                              onChange={(e) =>
+                                setNewVehicleInput(e.target.value.toUpperCase())
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleAddVehicle();
+                              }}
+                              placeholder="Add vehicle number…"
+                              className="font-vehicle bg-muted border-input focus-visible:ring-primary uppercase h-8 text-xs flex-1"
+                              maxLength={15}
+                            />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={handleAddVehicle}
+                                  disabled={!newVehicleInput.trim()}
+                                  className="h-8 w-8 flex-shrink-0 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary disabled:opacity-40"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Add to list</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </>
                       ) : (
                         <Input
                           value={customVehicle}

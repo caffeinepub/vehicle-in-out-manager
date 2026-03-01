@@ -1,37 +1,29 @@
-# Vehicle In/Out Time Management System
+# Vehicle In/Out Manager
 
 ## Current State
-New project. No existing code.
+- Login screen with hardcoded single admin account (username: admin, password: admin123)
+- After login, users can select/add vehicle numbers, log IN/OUT events with timestamp
+- All records stored in backend canister
+- CSV export available
 
 ## Requested Changes (Diff)
 
 ### Add
-- Vehicle entry/exit log system
-- Vehicle number selection via dropdown tag (predefined list + custom entry)
-- Auto-capture current date and time on log entry
-- "Vehicle IN" and "Vehicle OUT" actions
-- Table view of all logged records (vehicle number, type (IN/OUT), date, time)
-- CSV export button to download all records as a .csv file
-- Ability to delete individual records
+- Admin can create up to 3 additional user accounts (username + password) from a "Manage Users" panel
+- Created users are stored in localStorage and can log in with their credentials
+- Admin sees a user management section (accessible only when logged in as admin)
+- Max 3 user slots; UI shows how many slots are used (e.g. "2/3 users")
 
 ### Modify
-N/A
+- Login screen now validates against both the hardcoded admin account AND any user accounts stored in localStorage
+- Admin panel shows a "Manage Users" tab or section post-login
 
 ### Remove
-N/A
+- Nothing removed
 
 ## Implementation Plan
-
-### Backend (Motoko)
-- `addRecord(vehicleNumber: Text, action: Text, date: Text, time: Text)` -> Record ID
-- `getRecords()` -> list of all records with id, vehicleNumber, action, date, time
-- `deleteRecord(id: Nat)` -> Bool
-- Store records in stable memory (array/map)
-
-### Frontend (React)
-- Header with app title
-- Vehicle number selector: dropdown with common vehicle tags + option to type a custom number
-- Action buttons: "Vehicle IN" (green) and "Vehicle OUT" (red)
-- Records table: columns for #, Vehicle Number, Action, Date, Time, Delete
-- CSV Export button: generates and downloads CSV from current records
-- Auto-fills current date and time when logging
+1. Add a `LS_USERS_KEY` localStorage key to store created user accounts (array of {username, password})
+2. Update login validation to check both admin credentials and stored users
+3. Add a "Manage Users" section visible only when logged in as admin (tracked via a `currentUser` state instead of just boolean)
+4. In Manage Users: list existing users, allow adding up to 3 (username + password form), allow deleting users
+5. Show user count indicator (e.g. "1/3 users created")

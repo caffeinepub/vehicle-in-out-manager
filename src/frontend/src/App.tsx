@@ -1,6 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -39,9 +46,12 @@ import {
   LogIn,
   LogOut,
   Plus,
+  Shield,
   Trash2,
   Truck,
   User,
+  UserPlus,
+  Users,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -54,12 +64,252 @@ import {
   useGetAllRecords,
 } from "./hooks/useQueries";
 
-// ─── Login Screen ────────────────────────────────────────────────────────────
+// ─── User Management ─────────────────────────────────────────────────────────
 
-const VALID_USERNAME = "admin";
-const VALID_PASSWORD = "admin123";
+const ADMIN_USERNAME = "admin";
+const ADMIN_PASSWORD = "admin123";
+const MAX_USERS = 3;
+const LS_USERS_KEY = "vehicle_users";
 
-function LoginScreen({ onLogin }: { onLogin: () => void }) {
+interface ManagedUser {
+  username: string;
+  password: string;
+}
+
+function loadManagedUsers(): ManagedUser[] {
+  try {
+    const stored = localStorage.getItem(LS_USERS_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveManagedUsers(users: ManagedUser[]) {
+  localStorage.setItem(LS_USERS_KEY, JSON.stringify(users));
+}
+
+function validateLogin(username: string, password: string): boolean {
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) return true;
+  const users = loadManagedUsers();
+  return users.some((u) => u.username === username && u.password === password);
+}
+
+// ─── Manage Users Dialog ─────────────────────────────────────────────────────
+
+function ManageUsersDialog() {
+  const [users, setUsers] = useState<ManagedUser[]>(loadManagedUsers);
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleCreate = useCallback(() => {
+    const trimUser = newUsername.trim().toLowerCase();
+    const trimPass = newPassword.trim();
+    setError("");
+
+    if (!trimUser || !trimPass) {
+      setError("Both username and password are required.");
+      return;
+    }
+    if (trimUser === ADMIN_USERNAME) {
+      setError(`"${ADMIN_USERNAME}" is reserved and cannot be used.`);
+      return;
+    }
+    if (users.some((u) => u.username === trimUser)) {
+      setError(`Username "${trimUser}" already exists.`);
+      return;
+    }
+    if (users.length >= MAX_USERS) {
+      setError(`Maximum ${MAX_USERS} users reached.`);
+      return;
+    }
+
+    const updated = [...users, { username: trimUser, password: trimPass }];
+    setUsers(updated);
+    saveManagedUsers(updated);
+    setNewUsername("");
+    setNewPassword("");
+    toast.success(`User "${trimUser}" created successfully`);
+  }, [newUsername, newPassword, users]);
+
+  const handleDelete = useCallback(
+    (username: string) => {
+      const updated = users.filter((u) => u.username !== username);
+      setUsers(updated);
+      saveManagedUsers(updated);
+      toast.success(`User "${username}" deleted`);
+    },
+    [users],
+  );
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="btn-primary-glow border-primary/40 text-primary hover:bg-primary/10 hover:text-primary gap-1.5"
+        >
+          <Users className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Manage Users</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 font-display text-base">
+            <Shield className="h-4 w-4 text-primary" />
+            User Management
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Counter */}
+        <div className="flex items-center justify-between rounded-md border border-border bg-muted px-3 py-2">
+          <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+            Users Created
+          </span>
+          <Badge
+            variant="secondary"
+            className={`font-mono text-xs ${users.length >= MAX_USERS ? "bg-destructive/20 text-destructive border-destructive/30" : "bg-primary/20 text-primary border-primary/30"}`}
+          >
+            {users.length} / {MAX_USERS}
+          </Badge>
+        </div>
+
+        {/* Existing Users */}
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+            Current Users
+          </p>
+          {users.length === 0 ? (
+            <div className="rounded-md border border-border border-dashed bg-muted/30 px-4 py-5 text-center">
+              <UserPlus className="h-5 w-5 text-muted-foreground mx-auto mb-1.5" />
+              <p className="text-xs text-muted-foreground">
+                No users yet. Add up to {MAX_USERS} below.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-md border border-border overflow-hidden divide-y divide-border">
+              {users.map((u) => (
+                <div
+                  key={u.username}
+                  className="flex items-center justify-between px-3 py-2.5 bg-card hover:bg-muted/40 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="h-7 w-7 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center">
+                      <User className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium text-foreground font-vehicle">
+                      {u.username}
+                    </span>
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(u.username)}
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete user</TooltipContent>
+                  </Tooltip>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Create New User */}
+        {users.length < MAX_USERS && (
+          <div className="space-y-3 border-t border-border pt-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+              Create New User
+            </p>
+            <div className="space-y-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Username
+                </Label>
+                <Input
+                  value={newUsername}
+                  onChange={(e) => {
+                    setNewUsername(e.target.value);
+                    setError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreate();
+                  }}
+                  placeholder="Enter username"
+                  className="bg-muted border-input focus-visible:ring-primary h-9 text-sm"
+                  maxLength={30}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Password
+                </Label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreate();
+                  }}
+                  placeholder="Enter password"
+                  className="bg-muted border-input focus-visible:ring-primary h-9 text-sm"
+                  maxLength={50}
+                />
+              </div>
+
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    key="user-error"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                  >
+                    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <Button
+                onClick={handleCreate}
+                disabled={!newUsername.trim() || !newPassword.trim()}
+                className="w-full btn-in h-9 font-display font-semibold text-sm gap-2 disabled:opacity-40"
+              >
+                <UserPlus className="h-4 w-4" />
+                Create User
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {users.length >= MAX_USERS && (
+          <p className="text-center text-xs text-muted-foreground border border-amber-500/20 bg-amber-500/10 text-amber-400 rounded-md px-3 py-2">
+            Maximum of {MAX_USERS} users reached. Delete a user to add another.
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Login Screen ─────────────────────────────────────────────────────────────
+
+function LoginScreen({ onLogin }: { onLogin: (username: string) => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -73,8 +323,9 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
       // Simulate a brief auth delay for UX polish
       setTimeout(() => {
-        if (username.trim() === VALID_USERNAME && password === VALID_PASSWORD) {
-          onLogin();
+        const trimmedUser = username.trim().toLowerCase();
+        if (validateLogin(trimmedUser, password)) {
+          onLogin(trimmedUser);
         } else {
           setError("Invalid username or password");
           setIsLoading(false);
@@ -331,7 +582,9 @@ function StatCard({
 }
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const isLoggedIn = currentUser !== null;
+  const isAdmin = currentUser === ADMIN_USERNAME;
   const [now, setNow] = useState(new Date());
   const [selectedVehicle, setSelectedVehicle] = useState<string>("");
   const [customVehicle, setCustomVehicle] = useState<string>("");
@@ -433,7 +686,7 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <>
-        <LoginScreen onLogin={() => setIsLoggedIn(true)} />
+        <LoginScreen onLogin={(username) => setCurrentUser(username)} />
         <Toaster
           theme="dark"
           position="top-right"
@@ -496,6 +749,33 @@ export default function App() {
                     <span className="hidden sm:inline">Export CSV</span>
                   </Button>
                 )}
+                {/* Show logged-in user chip */}
+                <div className="hidden sm:flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5 border border-border">
+                  {isAdmin ? (
+                    <Shield className="h-3 w-3 text-primary" />
+                  ) : (
+                    <User className="h-3 w-3 text-muted-foreground" />
+                  )}
+                  <span className="text-xs font-mono text-muted-foreground capitalize">
+                    {currentUser}
+                  </span>
+                </div>
+                {/* Manage Users — admin only */}
+                {isAdmin && <ManageUsersDialog />}
+                {/* Logout */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setCurrentUser(null)}
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Logout</TooltipContent>
+                </Tooltip>
               </motion.div>
             </div>
           </div>

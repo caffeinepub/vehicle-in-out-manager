@@ -28,17 +28,20 @@ import {
 } from "@/components/ui/tooltip";
 import {
   Activity,
+  AlertCircle,
   Calendar,
   Car,
   ChevronRight,
   Clock,
   Download,
+  KeyRound,
   Loader2,
   LogIn,
   LogOut,
   Plus,
   Trash2,
   Truck,
+  User,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -50,6 +53,192 @@ import {
   useDeleteRecord,
   useGetAllRecords,
 } from "./hooks/useQueries";
+
+// ─── Login Screen ────────────────────────────────────────────────────────────
+
+const VALID_USERNAME = "admin";
+const VALID_PASSWORD = "admin123";
+
+function LoginScreen({ onLogin }: { onLogin: () => void }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      setError("");
+      setIsLoading(true);
+
+      // Simulate a brief auth delay for UX polish
+      setTimeout(() => {
+        if (username.trim() === VALID_USERNAME && password === VALID_PASSWORD) {
+          onLogin();
+        } else {
+          setError("Invalid username or password");
+          setIsLoading(false);
+        }
+      }, 500);
+    },
+    [username, password, onLogin],
+  );
+
+  return (
+    <div className="relative min-h-screen panel-grid flex items-center justify-center p-4">
+      {/* Ambient glow blobs */}
+      <div
+        className="pointer-events-none fixed inset-0 overflow-hidden"
+        aria-hidden
+      >
+        <div
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full opacity-20"
+          style={{
+            background:
+              "radial-gradient(ellipse, oklch(0.78 0.17 75 / 0.35) 0%, transparent 70%)",
+          }}
+        />
+        <div
+          className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full opacity-10"
+          style={{
+            background:
+              "radial-gradient(ellipse, oklch(0.6 0.2 210 / 0.5) 0%, transparent 70%)",
+          }}
+        />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 w-full max-w-sm"
+      >
+        {/* Logo mark */}
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-col items-center mb-8"
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20 border border-primary/40 mb-4 shadow-lg shadow-primary/10">
+            <Truck className="h-7 w-7 text-primary" />
+          </div>
+          <h1 className="font-display font-bold text-2xl text-foreground tracking-tight">
+            Vehicle In/Out Manager
+          </h1>
+          <p className="text-xs text-muted-foreground tracking-widest uppercase mt-1">
+            Fleet Time Tracking System
+          </p>
+        </motion.div>
+
+        {/* Card */}
+        <Card className="border-border bg-card shadow-2xl shadow-black/40">
+          <CardHeader className="pb-4 border-b border-border">
+            <CardTitle className="flex items-center gap-2 font-display text-sm text-muted-foreground font-medium tracking-wider uppercase">
+              <KeyRound className="h-3.5 w-3.5 text-primary" />
+              Secure Access
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Username */}
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="username"
+                  className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"
+                >
+                  <User className="h-3 w-3" />
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setError("");
+                  }}
+                  placeholder="Enter username"
+                  autoComplete="username"
+                  autoFocus
+                  className="bg-muted border-input focus-visible:ring-primary font-vehicle h-10"
+                />
+              </div>
+
+              {/* Password */}
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="password"
+                  className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"
+                >
+                  <KeyRound className="h-3 w-3" />
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError("");
+                  }}
+                  placeholder="Enter password"
+                  autoComplete="current-password"
+                  className="bg-muted border-input focus-visible:ring-primary h-10"
+                />
+              </div>
+
+              {/* Error message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: 0, y: -6, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: "auto" }}
+                    exit={{ opacity: 0, y: -6, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+                    role="alert"
+                  >
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{error}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Submit */}
+              <Button
+                type="submit"
+                disabled={isLoading || !username.trim() || !password}
+                className="btn-in w-full h-11 font-display font-semibold text-sm gap-2 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LogIn className="h-4 w-4" />
+                )}
+                {isLoading ? "Authenticating…" : "Login"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()}.{" "}
+          <a
+            href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary transition-colors"
+          >
+            Built with ♥ using caffeine.ai
+          </a>
+        </p>
+      </motion.div>
+    </div>
+  );
+}
 
 const PRESET_VEHICLES: string[] = [];
 
@@ -142,6 +331,7 @@ function StatCard({
 }
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [now, setNow] = useState(new Date());
   const [selectedVehicle, setSelectedVehicle] = useState<string>("");
   const [customVehicle, setCustomVehicle] = useState<string>("");
@@ -239,6 +429,25 @@ export default function App() {
 
   const totalIn = records.filter((r) => r.action === "IN").length;
   const totalOut = records.filter((r) => r.action === "OUT").length;
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <LoginScreen onLogin={() => setIsLoggedIn(true)} />
+        <Toaster
+          theme="dark"
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "oklch(0.22 0.02 240)",
+              border: "1px solid oklch(0.32 0.025 240)",
+              color: "oklch(0.94 0.01 240)",
+            },
+          }}
+        />
+      </>
+    );
+  }
 
   return (
     <TooltipProvider>
@@ -357,7 +566,11 @@ export default function App() {
                               <SelectValue placeholder="Select a vehicle…" />
                             </SelectTrigger>
                             <SelectContent>
-                              {customVehicles.length > 0 && (
+                              {customVehicles.length === 0 ? (
+                                <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+                                  No vehicles yet. Add one below.
+                                </div>
+                              ) : (
                                 <>
                                   <div className="px-2 py-1">
                                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
@@ -485,7 +698,13 @@ export default function App() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                {!activeVehicleNumber && (
+                  <p className="mt-4 text-xs text-amber-500 font-medium">
+                    Please select or add a vehicle number above before logging
+                    IN or OUT.
+                  </p>
+                )}
+                <div className="mt-3 flex flex-col sm:flex-row gap-3">
                   <Button
                     onClick={() => handleAction("IN")}
                     disabled={addRecord.isPending || !activeVehicleNumber}

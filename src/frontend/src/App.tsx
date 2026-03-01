@@ -474,6 +474,18 @@ function LoginScreen({ onLogin }: { onLogin: (username: string) => void }) {
           </CardContent>
         </Card>
 
+        {/* Default credentials hint */}
+        <div className="mt-4 rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-center">
+          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">
+            Default Admin Credentials
+          </p>
+          <p className="text-xs font-mono text-foreground">
+            Username: <span className="text-primary font-semibold">admin</span>
+            &nbsp;&nbsp;|&nbsp;&nbsp; Password:{" "}
+            <span className="text-primary font-semibold">admin123</span>
+          </p>
+        </div>
+
         {/* Footer */}
         <p className="mt-6 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()}.{" "}

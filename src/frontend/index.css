@@ -1,0 +1,200 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Sora";
+  src: url("/assets/fonts/Sora.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "General Sans";
+  src: url("/assets/fonts/GeneralSans.woff2") format("woff2");
+  font-weight: 200 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/JetBrainsMono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+
+    /* Navy-Amber Fleet Command Palette */
+    --background: 0.15 0.015 240;
+    --foreground: 0.94 0.01 240;
+    --card: 0.19 0.018 240;
+    --card-foreground: 0.94 0.01 240;
+    --popover: 0.22 0.02 240;
+    --popover-foreground: 0.94 0.01 240;
+
+    /* Primary: Amber/Gold */
+    --primary: 0.78 0.17 75;
+    --primary-foreground: 0.12 0.015 240;
+
+    /* Secondary: Steel blue */
+    --secondary: 0.26 0.03 235;
+    --secondary-foreground: 0.85 0.02 235;
+
+    /* Muted */
+    --muted: 0.23 0.02 240;
+    --muted-foreground: 0.55 0.02 240;
+
+    /* Accent: Cyan highlight */
+    --accent: 0.28 0.04 240;
+    --accent-foreground: 0.94 0.01 240;
+
+    /* Destructive: Red for OUT */
+    --destructive: 0.62 0.22 25;
+    --destructive-foreground: 0.98 0 0;
+
+    /* Success: Green for IN */
+    --success: 0.65 0.18 145;
+    --success-foreground: 0.98 0 0;
+
+    /* Warning: Amber */
+    --warning: 0.78 0.17 75;
+    --warning-foreground: 0.12 0.015 240;
+
+    /* Border / Input */
+    --border: 0.32 0.025 240;
+    --input: 0.28 0.025 240;
+    --ring: 0.78 0.17 75;
+
+    /* Charts */
+    --chart-1: 0.78 0.17 75;
+    --chart-2: 0.65 0.18 145;
+    --chart-3: 0.62 0.22 25;
+    --chart-4: 0.6 0.2 210;
+    --chart-5: 0.7 0.15 300;
+
+    /* Sidebar */
+    --sidebar: 0.13 0.014 240;
+    --sidebar-foreground: 0.94 0.01 240;
+    --sidebar-primary: 0.78 0.17 75;
+    --sidebar-primary-foreground: 0.12 0.015 240;
+    --sidebar-accent: 0.26 0.03 235;
+    --sidebar-accent-foreground: 0.85 0.02 235;
+    --sidebar-border: 0.28 0.025 240;
+    --sidebar-ring: 0.78 0.17 75;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    background-image:
+      radial-gradient(
+        ellipse at 20% 10%,
+        oklch(0.22 0.04 240 / 0.5) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse at 80% 90%,
+        oklch(0.18 0.03 250 / 0.4) 0%,
+        transparent 60%
+      );
+    min-height: 100vh;
+  }
+
+  /* Scanline texture overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      oklch(0 0 0 / 0.03) 2px,
+      oklch(0 0 0 / 0.03) 4px
+    );
+    z-index: 0;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: oklch(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(var(--border));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(var(--muted-foreground));
+}
+
+/* Badge variants */
+.badge-in {
+  background: oklch(0.65 0.18 145 / 0.2);
+  color: oklch(0.75 0.18 145);
+  border: 1px solid oklch(0.65 0.18 145 / 0.4);
+}
+
+.badge-out {
+  background: oklch(0.62 0.22 25 / 0.2);
+  color: oklch(0.72 0.22 25);
+  border: 1px solid oklch(0.62 0.22 25 / 0.4);
+}
+
+/* Amber glow button */
+.btn-in {
+  background: oklch(0.65 0.18 145);
+  color: oklch(0.98 0 0);
+  transition: all 0.2s ease;
+}
+.btn-in:hover:not(:disabled) {
+  background: oklch(0.7 0.2 145);
+  box-shadow: 0 0 20px oklch(0.65 0.18 145 / 0.4);
+}
+
+.btn-out {
+  background: oklch(0.62 0.22 25);
+  color: oklch(0.98 0 0);
+  transition: all 0.2s ease;
+}
+.btn-out:hover:not(:disabled) {
+  background: oklch(0.67 0.24 25);
+  box-shadow: 0 0 20px oklch(0.62 0.22 25 / 0.4);
+}
+
+/* Mono font for vehicle numbers and timestamps */
+.font-vehicle {
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.04em;
+}
+
+/* Amber primary button glow */
+.btn-primary-glow {
+  box-shadow: 0 0 0 0 oklch(0.78 0.17 75 / 0.4);
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.15s ease;
+}
+.btn-primary-glow:hover:not(:disabled) {
+  box-shadow: 0 0 24px 2px oklch(0.78 0.17 75 / 0.35);
+  transform: translateY(-1px);
+}
+
+/* Panel grid lines */
+.panel-grid {
+  background-image:
+    linear-gradient(oklch(0.35 0.03 240 / 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.35 0.03 240 / 0.15) 1px, transparent 1px);
+  background-size: 40px 40px;
+}

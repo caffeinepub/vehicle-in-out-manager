@@ -36,6 +36,7 @@ import {
 import {
   Activity,
   AlertCircle,
+  AlertTriangle,
   Calendar,
   Car,
   ChevronRight,
@@ -45,6 +46,7 @@ import {
   Loader2,
   LogIn,
   LogOut,
+  Package,
   Plus,
   Shield,
   Trash2,
@@ -55,7 +57,7 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { VehicleRecord } from "./backend.d";
 import {
@@ -522,6 +524,40 @@ function saveCustomVehicles(vehicles: string[]) {
   localStorage.setItem(LS_KEY, JSON.stringify(vehicles));
 }
 
+const LS_SUPPLIER_KEY = "vehicle_supplier_list";
+
+function loadCustomSuppliers(): string[] {
+  try {
+    const stored = localStorage.getItem(LS_SUPPLIER_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomSuppliers(suppliers: string[]) {
+  localStorage.setItem(LS_SUPPLIER_KEY, JSON.stringify(suppliers));
+}
+
+const LS_DRIVER_KEY = "vehicle_driver_list";
+
+function loadCustomDrivers(): string[] {
+  try {
+    const stored = localStorage.getItem(LS_DRIVER_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomDrivers(drivers: string[]) {
+  localStorage.setItem(LS_DRIVER_KEY, JSON.stringify(drivers));
+}
+
 function formatDate(d: Date): string {
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -537,13 +573,13 @@ function formatTime(d: Date): string {
 }
 
 function exportCSV(records: VehicleRecord[]) {
-  const sorted = [...records].sort(
-    (a, b) => Number(b.timestamp) - Number(a.timestamp),
-  );
-  const header = "#,Vehicle Number,Action,Date,Time\n";
+  const sorted = [...records].sort((a, b) => Number(b.id) - Number(a.id));
+  const header =
+    "#,Vehicle Number,Driver Name,Action,Supplier,Units,Date,Time\n";
   const rows = sorted
     .map(
-      (r, i) => `${i + 1},${r.vehicleNumber},${r.action},${r.date},${r.time}`,
+      (r, i) =>
+        `${i + 1},${r.vehicleNumber},${r.driverName || ""},${r.action},${r.supplier || ""},${r.units.toString()},${r.date},${r.time}`,
     )
     .join("\n");
   const csv = header + rows;
@@ -605,6 +641,15 @@ export default function App() {
   const [customVehicles, setCustomVehicles] =
     useState<string[]>(loadCustomVehicles);
   const [newVehicleInput, setNewVehicleInput] = useState<string>("");
+  const [supplier, setSupplier] = useState<string>("");
+  const [customSuppliers, setCustomSuppliers] =
+    useState<string[]>(loadCustomSuppliers);
+  const [newSupplierInput, setNewSupplierInput] = useState<string>("");
+  const [driverName, setDriverName] = useState<string>("");
+  const [customDrivers, setCustomDrivers] =
+    useState<string[]>(loadCustomDrivers);
+  const [newDriverInput, setNewDriverInput] = useState<string>("");
+  const [units, setUnits] = useState<number>(0);
 
   const handleAddVehicle = useCallback(() => {
     const trimmed = newVehicleInput.trim().toUpperCase();
@@ -631,6 +676,58 @@ export default function App() {
       toast.success(`${vehicle} removed from the list`);
     },
     [customVehicles, selectedVehicle],
+  );
+
+  const handleAddSupplier = useCallback(() => {
+    const trimmed = newSupplierInput.trim();
+    if (!trimmed) return;
+    if (customSuppliers.includes(trimmed)) {
+      toast.error(`"${trimmed}" is already in the supplier list`);
+      return;
+    }
+    const updated = [...customSuppliers, trimmed];
+    setCustomSuppliers(updated);
+    saveCustomSuppliers(updated);
+    setNewSupplierInput("");
+    setSupplier(trimmed);
+    toast.success(`"${trimmed}" added to suppliers`);
+  }, [newSupplierInput, customSuppliers]);
+
+  const handleRemoveCustomSupplier = useCallback(
+    (s: string) => {
+      const updated = customSuppliers.filter((v) => v !== s);
+      setCustomSuppliers(updated);
+      saveCustomSuppliers(updated);
+      if (supplier === s) setSupplier("");
+      toast.success(`"${s}" removed from suppliers`);
+    },
+    [customSuppliers, supplier],
+  );
+
+  const handleAddDriver = useCallback(() => {
+    const trimmed = newDriverInput.trim();
+    if (!trimmed) return;
+    if (customDrivers.includes(trimmed)) {
+      toast.error(`"${trimmed}" is already in the driver list`);
+      return;
+    }
+    const updated = [...customDrivers, trimmed];
+    setCustomDrivers(updated);
+    saveCustomDrivers(updated);
+    setNewDriverInput("");
+    setDriverName(trimmed);
+    toast.success(`"${trimmed}" added to drivers`);
+  }, [newDriverInput, customDrivers]);
+
+  const handleRemoveCustomDriver = useCallback(
+    (d: string) => {
+      const updated = customDrivers.filter((v) => v !== d);
+      setCustomDrivers(updated);
+      saveCustomDrivers(updated);
+      if (driverName === d) setDriverName("");
+      toast.success(`"${d}" removed from drivers`);
+    },
+    [customDrivers, driverName],
   );
 
   const { data: records = [], isLoading } = useGetAllRecords();
@@ -664,13 +761,21 @@ export default function App() {
           action,
           date: logDate,
           time: logTime,
+          supplier: supplier.trim(),
+          units: BigInt(units),
+          driverName: driverName.trim(),
         });
         toast.success(`Vehicle ${vehicleNum} logged ${action} at ${logTime}`);
+        setSupplier("");
+        setNewSupplierInput("");
+        setDriverName("");
+        setNewDriverInput("");
+        setUnits(0);
       } catch {
         toast.error("Failed to log vehicle. Please try again.");
       }
     },
-    [activeVehicleNumber, addRecord],
+    [activeVehicleNumber, addRecord, supplier, units, driverName],
   );
 
   const handleDelete = useCallback(
@@ -689,11 +794,53 @@ export default function App() {
   );
 
   const sortedRecords = [...records].sort(
-    (a, b) => Number(b.timestamp) - Number(a.timestamp),
+    (a, b) => Number(b.id) - Number(a.id),
   );
 
   const totalIn = records.filter((r) => r.action === "IN").length;
   const totalOut = records.filter((r) => r.action === "OUT").length;
+
+  // ── One-vehicle-at-a-time rule ────────────────────────────────────────────
+  // Find the vehicle whose most recent record is "IN" (it hasn't exited yet).
+  const currentlyInsideVehicle: string | null = (() => {
+    // Group records by vehicle number, keep only the latest per vehicle.
+    const latestByVehicle = new Map<string, { id: bigint; action: string }>();
+    for (const r of records) {
+      const existing = latestByVehicle.get(r.vehicleNumber);
+      if (!existing || r.id > existing.id) {
+        latestByVehicle.set(r.vehicleNumber, { id: r.id, action: r.action });
+      }
+    }
+    for (const [vehicleNumber, latest] of latestByVehicle.entries()) {
+      if (latest.action === "IN") return vehicleNumber;
+    }
+    return null;
+  })();
+
+  // When a vehicle is currently inside, auto-select it in the dropdown so the
+  // operator can quickly log it OUT.
+  // We use a ref-guard to avoid overriding explicit user selections.
+  const prevInsideRef = useRef<string | null>(null);
+  if (
+    currentlyInsideVehicle !== null &&
+    currentlyInsideVehicle !== prevInsideRef.current
+  ) {
+    // Auto-select: only switch to the inside vehicle if the user hasn't
+    // already selected it and we are using the dropdown (not custom input).
+    if (!useCustom && selectedVehicle !== currentlyInsideVehicle) {
+      // Schedule the state update outside the render phase.
+      setTimeout(() => setSelectedVehicle(currentlyInsideVehicle), 0);
+    }
+    prevInsideRef.current = currentlyInsideVehicle;
+  }
+  if (currentlyInsideVehicle === null && prevInsideRef.current !== null) {
+    prevInsideRef.current = null;
+  }
+
+  // Block logging IN when another vehicle is already inside.
+  const isInBlocked =
+    currentlyInsideVehicle !== null &&
+    currentlyInsideVehicle !== activeVehicleNumber;
 
   if (!isLoggedIn) {
     return (
@@ -841,9 +988,9 @@ export default function App() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                   {/* Vehicle Number */}
-                  <div className="lg:col-span-2 space-y-2">
+                  <div className="sm:col-span-2 xl:col-span-2 space-y-2">
                     <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                       Vehicle Number
                     </Label>
@@ -955,6 +1102,184 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Supplier */}
+                  <div className="xl:col-span-2 space-y-2">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <Package className="h-3 w-3" /> Supplier
+                    </Label>
+                    <div className="space-y-2">
+                      <Select value={supplier} onValueChange={setSupplier}>
+                        <SelectTrigger className="bg-muted border-input focus:ring-primary">
+                          <SelectValue placeholder="Select a supplier…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {customSuppliers.length === 0 ? (
+                            <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+                              No suppliers yet. Add one below.
+                            </div>
+                          ) : (
+                            <>
+                              <div className="px-2 py-1">
+                                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
+                                  My Suppliers
+                                </span>
+                              </div>
+                              {customSuppliers.map((s) => (
+                                <div
+                                  key={s}
+                                  className="flex items-center justify-between pr-1"
+                                >
+                                  <SelectItem value={s} className="flex-1">
+                                    {s}
+                                  </SelectItem>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveCustomSupplier(s);
+                                    }}
+                                    className="ml-1 p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
+                                    title={`Remove ${s}`}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {/* Add new supplier to list */}
+                      <div className="flex gap-1.5">
+                        <Input
+                          value={newSupplierInput}
+                          onChange={(e) => setNewSupplierInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleAddSupplier();
+                          }}
+                          placeholder="Add supplier name…"
+                          className="bg-muted border-input focus-visible:ring-primary h-8 text-xs flex-1"
+                          maxLength={80}
+                        />
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={handleAddSupplier}
+                              disabled={!newSupplierInput.trim()}
+                              className="h-8 w-8 flex-shrink-0 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary disabled:opacity-40"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Add to list</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Driver Name */}
+                  <div className="xl:col-span-2 space-y-2">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <User className="h-3 w-3" /> Driver Name
+                    </Label>
+                    <div className="space-y-2">
+                      <Select value={driverName} onValueChange={setDriverName}>
+                        <SelectTrigger className="bg-muted border-input focus:ring-primary">
+                          <SelectValue placeholder="Select a driver…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {customDrivers.length === 0 ? (
+                            <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+                              No drivers yet. Add one below.
+                            </div>
+                          ) : (
+                            <>
+                              <div className="px-2 py-1">
+                                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
+                                  My Drivers
+                                </span>
+                              </div>
+                              {customDrivers.map((d) => (
+                                <div
+                                  key={d}
+                                  className="flex items-center justify-between pr-1"
+                                >
+                                  <SelectItem value={d} className="flex-1">
+                                    {d}
+                                  </SelectItem>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveCustomDriver(d);
+                                    }}
+                                    className="ml-1 p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
+                                    title={`Remove ${d}`}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {/* Add new driver to list */}
+                      <div className="flex gap-1.5">
+                        <Input
+                          value={newDriverInput}
+                          onChange={(e) => setNewDriverInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleAddDriver();
+                          }}
+                          placeholder="Add driver name…"
+                          className="bg-muted border-input focus-visible:ring-primary h-8 text-xs flex-1"
+                          maxLength={80}
+                        />
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={handleAddDriver}
+                              disabled={!newDriverInput.trim()}
+                              className="h-8 w-8 flex-shrink-0 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary disabled:opacity-40"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Add to list</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Units */}
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      Units
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={units}
+                      onChange={(e) =>
+                        setUnits(
+                          Math.max(0, Number.parseInt(e.target.value) || 0),
+                        )
+                      }
+                      placeholder="0"
+                      className="bg-muted border-input focus-visible:ring-primary h-9 text-sm font-vehicle"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Quantity
+                    </p>
+                  </div>
+
                   {/* Date */}
                   <div className="space-y-2">
                     <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1">
@@ -989,27 +1314,69 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* One-vehicle-at-a-time notice */}
+                <AnimatePresence>
+                  {currentlyInsideVehicle && (
+                    <motion.div
+                      key="inside-notice"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="mt-4 overflow-hidden"
+                    >
+                      <div className="flex items-start gap-2.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
+                        <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-400" />
+                        <p>
+                          <span className="font-semibold font-vehicle text-amber-300">
+                            {currentlyInsideVehicle}
+                          </span>{" "}
+                          is currently inside. Log it{" "}
+                          <span className="font-semibold">OUT</span> before
+                          logging a new vehicle IN.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Action Buttons */}
-                {!activeVehicleNumber && (
+                {!activeVehicleNumber && !currentlyInsideVehicle && (
                   <p className="mt-4 text-xs text-amber-500 font-medium">
                     Please select or add a vehicle number above before logging
                     IN or OUT.
                   </p>
                 )}
                 <div className="mt-3 flex flex-col sm:flex-row gap-3">
-                  <Button
-                    onClick={() => handleAction("IN")}
-                    disabled={addRecord.isPending || !activeVehicleNumber}
-                    className="btn-in flex-1 h-11 font-display font-semibold text-sm gap-2 disabled:opacity-40"
-                  >
-                    {addRecord.isPending &&
-                    addRecord.variables?.action === "IN" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <LogIn className="h-4 w-4" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex-1">
+                        <Button
+                          onClick={() => handleAction("IN")}
+                          disabled={
+                            addRecord.isPending ||
+                            !activeVehicleNumber ||
+                            isInBlocked
+                          }
+                          className="btn-in w-full h-11 font-display font-semibold text-sm gap-2 disabled:opacity-40"
+                        >
+                          {addRecord.isPending &&
+                          addRecord.variables?.action === "IN" ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <LogIn className="h-4 w-4" />
+                          )}
+                          Vehicle IN
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {isInBlocked && (
+                      <TooltipContent>
+                        Log out {currentlyInsideVehicle} first before logging
+                        another vehicle IN
+                      </TooltipContent>
                     )}
-                    Vehicle IN
-                  </Button>
+                  </Tooltip>
                   <Button
                     onClick={() => handleAction("OUT")}
                     disabled={addRecord.isPending || !activeVehicleNumber}
@@ -1096,7 +1463,16 @@ export default function App() {
                             Vehicle Number
                           </TableHead>
                           <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                            Driver Name
+                          </TableHead>
+                          <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
                             Action
+                          </TableHead>
+                          <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                            Supplier
+                          </TableHead>
+                          <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                            Units
                           </TableHead>
                           <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
                             Date
@@ -1128,6 +1504,9 @@ export default function App() {
                                   {record.vehicleNumber}
                                 </span>
                               </TableCell>
+                              <TableCell className="text-sm text-muted-foreground max-w-[140px] truncate">
+                                {record.driverName || "-"}
+                              </TableCell>
                               <TableCell>
                                 <span
                                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold font-mono ${
@@ -1143,6 +1522,12 @@ export default function App() {
                                   )}
                                   {record.action}
                                 </span>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground max-w-[140px] truncate">
+                                {record.supplier || "-"}
+                              </TableCell>
+                              <TableCell className="font-vehicle text-sm text-muted-foreground">
+                                {record.units.toString()}
                               </TableCell>
                               <TableCell className="font-vehicle text-sm text-muted-foreground">
                                 {record.date}

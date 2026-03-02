@@ -24,14 +24,28 @@ export function useAddRecord() {
       action,
       date,
       time,
+      supplier,
+      units,
+      driverName,
     }: {
       vehicleNumber: string;
       action: string;
       date: string;
       time: string;
+      supplier: string;
+      units: bigint;
+      driverName: string;
     }) => {
       if (!actor) throw new Error("Actor not initialized");
-      return actor.addRecord(vehicleNumber, action, date, time);
+      return actor.addRecord(
+        vehicleNumber,
+        action,
+        date,
+        time,
+        supplier,
+        units,
+        driverName,
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicleRecords"] });

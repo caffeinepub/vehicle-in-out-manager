@@ -13,13 +13,18 @@ import type { Principal } from '@icp-sdk/core/principal';
 export interface VehicleRecord {
   'id' : bigint,
   'action' : string,
+  'supplier' : string,
   'date' : string,
   'vehicleNumber' : string,
   'time' : string,
-  'timestamp' : bigint,
+  'units' : bigint,
+  'driverName' : string,
 }
 export interface _SERVICE {
-  'addRecord' : ActorMethod<[string, string, string, string], bigint>,
+  'addRecord' : ActorMethod<
+    [string, string, string, string, string, bigint, string],
+    bigint
+  >,
   'deleteRecord' : ActorMethod<[bigint], undefined>,
   'getAllRecords' : ActorMethod<[], Array<VehicleRecord>>,
 }

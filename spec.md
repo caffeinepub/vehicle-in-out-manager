@@ -1,29 +1,45 @@
 # Vehicle In/Out Manager
 
 ## Current State
-- Login screen with hardcoded single admin account (username: admin, password: admin123)
-- After login, users can select/add vehicle numbers, log IN/OUT events with timestamp
-- All records stored in backend canister
-- CSV export available
+The app has a vehicle entry/exit logging system with:
+- Vehicle number (selectable from a saved list, or typed custom)
+- Supplier (selectable from a saved list)
+- Units (numeric input)
+- Date and Time (auto-filled)
+- Login system with admin and up to 3 managed users
+- Records table with CSV export
+- One-vehicle-at-a-time enforcement
+
+The `VehicleRecord` type currently has: id, action, supplier, date, vehicleNumber, time, units.
+The backend `addRecord` signature: addRecord(vehicleNumber, action, date, time, supplier, units).
 
 ## Requested Changes (Diff)
 
 ### Add
-- Admin can create up to 3 additional user accounts (username + password) from a "Manage Users" panel
-- Created users are stored in localStorage and can log in with their credentials
-- Admin sees a user management section (accessible only when logged in as admin)
-- Max 3 user slots; UI shows how many slots are used (e.g. "2/3 users")
+- `driverName` field to VehicleRecord (stored as string)
+- Driver Name selector in the entry form, working identically to Supplier: a dropdown select with a saved list (stored in localStorage), ability to add new driver names and remove existing ones
+- Driver Name column in the records log table
+- Driver Name included in CSV export
 
 ### Modify
-- Login screen now validates against both the hardcoded admin account AND any user accounts stored in localStorage
-- Admin panel shows a "Manage Users" tab or section post-login
+- Backend `addRecord` to accept a new `driverName` parameter
+- `VehicleRecord` interface to include `driverName: string`
+- `exportCSV` function to include the Driver Name column
+- `handleAction` to pass `driverName` when calling `addRecord.mutateAsync`
+- After a successful IN/OUT log, reset the driver name field (like supplier resets)
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. Add a `LS_USERS_KEY` localStorage key to store created user accounts (array of {username, password})
-2. Update login validation to check both admin credentials and stored users
-3. Add a "Manage Users" section visible only when logged in as admin (tracked via a `currentUser` state instead of just boolean)
-4. In Manage Users: list existing users, allow adding up to 3 (username + password form), allow deleting users
-5. Show user count indicator (e.g. "1/3 users created")
+1. Update Motoko backend: add `driverName` field to VehicleRecord type and `addRecord` function signature; update stable storage migration to handle the new field with empty string default for old records.
+2. Update `backend.d.ts` to reflect new `driverName: string` in VehicleRecord and updated `addRecord` signature.
+3. In App.tsx frontend:
+   - Add localStorage key and load/save functions for driver names (LS_DRIVER_KEY)
+   - Add state: `driverName`, `customDrivers`, `newDriverInput`
+   - Add handlers: `handleAddDriver`, `handleRemoveDriver`
+   - Add Driver Name field in the form (between Supplier and Units), identical pattern to Supplier selector
+   - Pass `driverName` to `addRecord.mutateAsync` and reset after success
+   - Add Driver Name column to the records table
+   - Add Driver Name to CSV export header and rows
+4. Update `useQueries` hook if needed to pass driverName parameter.

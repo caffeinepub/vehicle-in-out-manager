@@ -1,8 +1,10 @@
-import Map "mo:core/Map";
-import Time "mo:core/Time";
-import Runtime "mo:core/Runtime";
+import Nat "mo:core/Nat";
 import Array "mo:core/Array";
+import Runtime "mo:core/Runtime";
+import Map "mo:core/Map";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   type VehicleRecord = {
     id : Nat;
@@ -10,16 +12,25 @@ actor {
     action : Text;
     date : Text;
     time : Text;
-    timestamp : Int;
+    supplier : Text;
+    units : Nat;
+    driverName : Text;
   };
 
   var nextId = 0;
   let records = Map.empty<Nat, VehicleRecord>();
 
-  public shared ({ caller }) func addRecord(vehicleNumber : Text, action : Text, date : Text, time : Text) : async Nat {
-    // Validate action
+  public shared ({ caller }) func addRecord(
+    vehicleNumber : Text,
+    action : Text,
+    date : Text,
+    time : Text,
+    supplier : Text,
+    units : Nat,
+    driverName : Text,
+  ) : async Nat {
     if (action != "IN" and action != "OUT") {
-      Runtime.trap("Action must be 'IN' or 'OUT'");
+      Runtime.trap("Action must be \\\"IN\\\" or \\\"OUT\\\"");
     };
 
     let record : VehicleRecord = {
@@ -28,7 +39,9 @@ actor {
       action;
       date;
       time;
-      timestamp = Time.now();
+      supplier;
+      units;
+      driverName;
     };
 
     records.add(nextId, record);
@@ -42,9 +55,11 @@ actor {
   };
 
   public shared ({ caller }) func deleteRecord(id : Nat) : async () {
-    if (not records.containsKey(id)) {
-      Runtime.trap("Record does not exist");
+    switch (records.get(id)) {
+      case (null) { Runtime.trap("Record does not exist") };
+      case (?_) {
+        records.remove(id);
+      };
     };
-    records.remove(id);
   };
 };

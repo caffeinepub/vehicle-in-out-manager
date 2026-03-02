@@ -11,15 +11,17 @@ import { IDL } from '@icp-sdk/core/candid';
 export const VehicleRecord = IDL.Record({
   'id' : IDL.Nat,
   'action' : IDL.Text,
+  'supplier' : IDL.Text,
   'date' : IDL.Text,
   'vehicleNumber' : IDL.Text,
   'time' : IDL.Text,
-  'timestamp' : IDL.Int,
+  'units' : IDL.Nat,
+  'driverName' : IDL.Text,
 });
 
 export const idlService = IDL.Service({
   'addRecord' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Nat, IDL.Text],
       [IDL.Nat],
       [],
     ),
@@ -33,15 +35,17 @@ export const idlFactory = ({ IDL }) => {
   const VehicleRecord = IDL.Record({
     'id' : IDL.Nat,
     'action' : IDL.Text,
+    'supplier' : IDL.Text,
     'date' : IDL.Text,
     'vehicleNumber' : IDL.Text,
     'time' : IDL.Text,
-    'timestamp' : IDL.Int,
+    'units' : IDL.Nat,
+    'driverName' : IDL.Text,
   });
   
   return IDL.Service({
     'addRecord' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Nat, IDL.Text],
         [IDL.Nat],
         [],
       ),

@@ -1,9 +1,9 @@
 import Nat "mo:core/Nat";
 import Array "mo:core/Array";
-import Migration "migration";
+
 import Runtime "mo:core/Runtime";
 
-(with migration = Migration.run)
+
 actor {
   type VehicleRecord = {
     id : Nat;

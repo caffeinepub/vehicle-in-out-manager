@@ -12,6 +12,7 @@ import type { Principal } from '@icp-sdk/core/principal';
 
 export interface VehicleRecord {
   'id' : bigint,
+  'challanNumber' : string,
   'action' : string,
   'supplier' : string,
   'date' : string,
@@ -22,7 +23,7 @@ export interface VehicleRecord {
 }
 export interface _SERVICE {
   'addRecord' : ActorMethod<
-    [string, string, string, string, string, bigint, string],
+    [string, string, string, string, string, bigint, string, string],
     bigint
   >,
   'deleteRecord' : ActorMethod<[bigint], undefined>,

@@ -42,6 +42,7 @@ import {
   ChevronRight,
   Clock,
   Download,
+  FileText,
   KeyRound,
   Loader2,
   LogIn,
@@ -575,11 +576,11 @@ function formatTime(d: Date): string {
 function exportCSV(records: VehicleRecord[]) {
   const sorted = [...records].sort((a, b) => Number(b.id) - Number(a.id));
   const header =
-    "#,Vehicle Number,Driver Name,Action,Supplier,Units,Date,Time\n";
+    "#,Vehicle Number,Driver Name,Action,Supplier,Units,Challan No.,Date,Time\n";
   const rows = sorted
     .map(
       (r, i) =>
-        `${i + 1},${r.vehicleNumber},${r.driverName || ""},${r.action},${r.supplier || ""},${r.units.toString()},${r.date},${r.time}`,
+        `${i + 1},${r.vehicleNumber},${r.driverName || ""},${r.action},${r.supplier || ""},${r.units.toString()},${r.challanNumber || ""},${r.date},${r.time}`,
     )
     .join("\n");
   const csv = header + rows;
@@ -650,6 +651,7 @@ export default function App() {
     useState<string[]>(loadCustomDrivers);
   const [newDriverInput, setNewDriverInput] = useState<string>("");
   const [units, setUnits] = useState<number>(0);
+  const [challanNumber, setChallanNumber] = useState<string>("");
 
   const handleAddVehicle = useCallback(() => {
     const trimmed = newVehicleInput.trim().toUpperCase();
@@ -764,6 +766,7 @@ export default function App() {
           supplier: supplier.trim(),
           units: BigInt(units),
           driverName: driverName.trim(),
+          challanNumber: challanNumber.trim(),
         });
         toast.success(`Vehicle ${vehicleNum} logged ${action} at ${logTime}`);
         setSupplier("");
@@ -771,11 +774,19 @@ export default function App() {
         setDriverName("");
         setNewDriverInput("");
         setUnits(0);
+        setChallanNumber("");
       } catch {
         toast.error("Failed to log vehicle. Please try again.");
       }
     },
-    [activeVehicleNumber, addRecord, supplier, units, driverName],
+    [
+      activeVehicleNumber,
+      addRecord,
+      supplier,
+      units,
+      driverName,
+      challanNumber,
+    ],
   );
 
   const handleDelete = useCallback(
@@ -1280,6 +1291,25 @@ export default function App() {
                     </p>
                   </div>
 
+                  {/* Delivery Challan Number */}
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <FileText className="h-3 w-3 text-primary" />
+                      <span>Delivery Challan No.</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      value={challanNumber}
+                      onChange={(e) => setChallanNumber(e.target.value)}
+                      placeholder="e.g. DC-2024-001"
+                      className="bg-muted border-input focus-visible:ring-primary h-9 text-sm font-vehicle"
+                      maxLength={50}
+                    />
+                    <p className="text-[10px] text-muted-foreground font-medium text-primary/70">
+                      ★ Required
+                    </p>
+                  </div>
+
                   {/* Date */}
                   <div className="space-y-2">
                     <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1">
@@ -1475,6 +1505,9 @@ export default function App() {
                             Units
                           </TableHead>
                           <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                            Challan No.
+                          </TableHead>
+                          <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
                             Date
                           </TableHead>
                           <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
@@ -1528,6 +1561,9 @@ export default function App() {
                               </TableCell>
                               <TableCell className="font-vehicle text-sm text-muted-foreground">
                                 {record.units.toString()}
+                              </TableCell>
+                              <TableCell className="text-sm font-medium text-foreground/80 max-w-[120px] truncate">
+                                {record.challanNumber || "-"}
                               </TableCell>
                               <TableCell className="font-vehicle text-sm text-muted-foreground">
                                 {record.date}

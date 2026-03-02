@@ -1,7 +1,7 @@
 import Nat "mo:core/Nat";
 import Array "mo:core/Array";
-import Runtime "mo:core/Runtime";
 import Migration "migration";
+import Runtime "mo:core/Runtime";
 
 (with migration = Migration.run)
 actor {
@@ -14,6 +14,7 @@ actor {
     supplier : Text;
     units : Nat;
     driverName : Text;
+    challanNumber : Text;
   };
 
   stable var nextId = 0;
@@ -25,6 +26,7 @@ actor {
   stable var recordSuppliers : [Text] = [];
   stable var recordUnits : [Nat] = [];
   stable var recordDriverNames : [Text] = [];
+  stable var recordChallanNumbers : [Text] = [];
 
   public shared ({ caller }) func addRecord(
     vehicleNumber : Text,
@@ -34,6 +36,7 @@ actor {
     supplier : Text,
     units : Nat,
     driverName : Text,
+    challanNumber : Text,
   ) : async Nat {
     if (action != "IN" and action != "OUT") {
       Runtime.trap("Action must be \\\"IN\\\" or \\\"OUT\\\"");
@@ -47,6 +50,7 @@ actor {
     recordSuppliers := recordSuppliers.concat([supplier]);
     recordUnits := recordUnits.concat([units]);
     recordDriverNames := recordDriverNames.concat([driverName]);
+    recordChallanNumbers := recordChallanNumbers.concat([challanNumber]);
 
     let currentId = nextId;
     nextId += 1;
@@ -68,6 +72,7 @@ actor {
           supplier = recordSuppliers[i];
           units = recordUnits[i];
           driverName = recordDriverNames[i];
+          challanNumber = recordChallanNumbers[i];
         };
       },
     );
@@ -90,6 +95,7 @@ actor {
         recordSuppliers := Array.tabulate(length - 1, func(i) { if (i < index) { recordSuppliers[i] } else { recordSuppliers[i + 1] } });
         recordUnits := Array.tabulate(length - 1, func(i) { if (i < index) { recordUnits[i] } else { recordUnits[i + 1] } });
         recordDriverNames := Array.tabulate(length - 1, func(i) { if (i < index) { recordDriverNames[i] } else { recordDriverNames[i + 1] } });
+        recordChallanNumbers := Array.tabulate(length - 1, func(i) { if (i < index) { recordChallanNumbers[i] } else { recordChallanNumbers[i + 1] } });
       };
     };
   };

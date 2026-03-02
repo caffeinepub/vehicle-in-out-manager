@@ -27,6 +27,7 @@ export function useAddRecord() {
       supplier,
       units,
       driverName,
+      challanNumber,
     }: {
       vehicleNumber: string;
       action: string;
@@ -35,6 +36,7 @@ export function useAddRecord() {
       supplier: string;
       units: bigint;
       driverName: string;
+      challanNumber: string;
     }) => {
       if (!actor) throw new Error("Actor not initialized");
       return actor.addRecord(
@@ -45,6 +47,7 @@ export function useAddRecord() {
         supplier,
         units,
         driverName,
+        challanNumber,
       );
     },
     onSuccess: () => {

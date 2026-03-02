@@ -9,6 +9,7 @@ export interface None {
 export type Option<T> = Some<T> | None;
 export interface VehicleRecord {
     id: bigint;
+    challanNumber: string;
     action: string;
     supplier: string;
     date: string;
@@ -18,7 +19,7 @@ export interface VehicleRecord {
     driverName: string;
 }
 export interface backendInterface {
-    addRecord(vehicleNumber: string, action: string, date: string, time: string, supplier: string, units: bigint, driverName: string): Promise<bigint>;
+    addRecord(vehicleNumber: string, action: string, date: string, time: string, supplier: string, units: bigint, driverName: string, challanNumber: string): Promise<bigint>;
     deleteRecord(id: bigint): Promise<void>;
     getAllRecords(): Promise<Array<VehicleRecord>>;
 }

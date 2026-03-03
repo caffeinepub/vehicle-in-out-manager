@@ -60,7 +60,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+
 import type { VehicleRecord } from "./backend.d";
 import {
   useAddRecord,
@@ -576,33 +576,45 @@ function formatTime(d: Date): string {
 
 function exportExcel(records: VehicleRecord[]) {
   const sorted = [...records].sort((a, b) => Number(b.id) - Number(a.id));
-  const rows = sorted.map((r, i) => ({
-    "#": i + 1,
-    "Vehicle Number": r.vehicleNumber,
-    "Driver Name": r.driverName || "",
-    Action: r.action,
-    Supplier: r.supplier || "",
-    Units: Number(r.units),
-    "Challan No.": r.challanNumber || "",
-    Date: r.date,
-    Time: r.time,
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  // Set column widths
-  ws["!cols"] = [
-    { wch: 5 },
-    { wch: 18 },
-    { wch: 20 },
-    { wch: 8 },
-    { wch: 20 },
-    { wch: 8 },
-    { wch: 16 },
-    { wch: 12 },
-    { wch: 10 },
+  const headers = [
+    "#",
+    "Vehicle Number",
+    "Driver Name",
+    "Action",
+    "Supplier",
+    "Units",
+    "Challan No.",
+    "Date",
+    "Time",
   ];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Vehicle Log");
-  XLSX.writeFile(wb, "vehicle_log.xlsx");
+  const escapeCell = (val: string | number) => {
+    const s = String(val);
+    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  };
+  const rows = sorted.map((r, i) => [
+    i + 1,
+    r.vehicleNumber,
+    r.driverName || "",
+    r.action,
+    r.supplier || "",
+    Number(r.units),
+    r.challanNumber || "",
+    r.date,
+    r.time,
+  ]);
+  const csvContent = [headers, ...rows]
+    .map((row) => row.map(escapeCell).join(","))
+    .join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "vehicle_log.csv";
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function StatCard({
@@ -785,8 +797,18 @@ export default function App() {
         setNewDriverInput("");
         setUnits(0);
         setChallanNumber("");
-      } catch {
-        toast.error("Failed to log vehicle. Please try again.");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (
+          msg.includes("Actor not initialized") ||
+          msg.includes("not initialized")
+        ) {
+          toast.error(
+            "System is still loading. Please wait a moment and try again.",
+          );
+        } else {
+          toast.error(`Failed to log vehicle: ${msg}`);
+        }
       }
     },
     [
@@ -805,8 +827,9 @@ export default function App() {
       try {
         await deleteRecord.mutateAsync(id);
         toast.success("Record deleted");
-      } catch {
-        toast.error("Failed to delete record");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error(`Failed to delete record: ${msg}`);
       } finally {
         setDeletingId(null);
       }

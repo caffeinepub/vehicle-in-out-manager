@@ -60,6 +60,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import type { VehicleRecord } from "./backend.d";
 import {
   useAddRecord,
@@ -573,26 +574,35 @@ function formatTime(d: Date): string {
   return `${hh}:${min}:${ss}`;
 }
 
-function exportCSV(records: VehicleRecord[]) {
+function exportExcel(records: VehicleRecord[]) {
   const sorted = [...records].sort((a, b) => Number(b.id) - Number(a.id));
-  const header =
-    "#,Vehicle Number,Driver Name,Action,Supplier,Units,Challan No.,Date,Time\n";
-  const rows = sorted
-    .map(
-      (r, i) =>
-        `${i + 1},${r.vehicleNumber},${r.driverName || ""},${r.action},${r.supplier || ""},${r.units.toString()},${r.challanNumber || ""},${r.date},${r.time}`,
-    )
-    .join("\n");
-  const csv = header + rows;
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "vehicle_log.csv";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  const rows = sorted.map((r, i) => ({
+    "#": i + 1,
+    "Vehicle Number": r.vehicleNumber,
+    "Driver Name": r.driverName || "",
+    Action: r.action,
+    Supplier: r.supplier || "",
+    Units: Number(r.units),
+    "Challan No.": r.challanNumber || "",
+    Date: r.date,
+    Time: r.time,
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  // Set column widths
+  ws["!cols"] = [
+    { wch: 5 },
+    { wch: 18 },
+    { wch: 20 },
+    { wch: 8 },
+    { wch: 20 },
+    { wch: 8 },
+    { wch: 16 },
+    { wch: 12 },
+    { wch: 10 },
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Vehicle Log");
+  XLSX.writeFile(wb, "vehicle_log.xlsx");
 }
 
 function StatCard({
@@ -912,11 +922,11 @@ export default function App() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => exportCSV(records)}
+                    onClick={() => exportExcel(records)}
                     className="btn-primary-glow border-primary/40 text-primary hover:bg-primary/10 hover:text-primary gap-1.5"
                   >
                     <Download className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Export CSV</span>
+                    <span className="hidden sm:inline">Export Excel</span>
                   </Button>
                 )}
                 {/* Show logged-in user chip */}
@@ -1423,11 +1433,11 @@ export default function App() {
                   {records.length > 0 && (
                     <Button
                       variant="outline"
-                      onClick={() => exportCSV(records)}
+                      onClick={() => exportExcel(records)}
                       className="sm:w-auto border-primary/40 text-primary hover:bg-primary/10 hover:text-primary h-11 gap-2 btn-primary-glow"
                     >
                       <Download className="h-4 w-4" />
-                      Export CSV
+                      Export Excel
                     </Button>
                   )}
                 </div>
